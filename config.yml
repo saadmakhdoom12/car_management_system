@@ -1,0 +1,10 @@
+# database:
+#   name: car_management.db
+#   path: data
+
+# logging:
+#   level: INFO
+#   file: logs/app.log
+
+# reports:
+#   output_dir: reports
