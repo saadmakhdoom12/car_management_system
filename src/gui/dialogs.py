@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from PyQt6.QtCore import QDate
 from PyQt6.QtWidgets import (
@@ -12,30 +13,38 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QVBoxLayout,
     QTextEdit,
+    QLabel,
 )
 
 
 class NewEstimateDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("New Estimate")
-        self.setup_ui()
+        try:
+            self.estimate_data = None
+            self.setup_ui()
+        except Exception as e:
+            logging.error(f"Error initializing NewEstimateDialog: {str(e)}")
+            raise
 
     def setup_ui(self):
         layout = QFormLayout()
         
-        # Customer Information
+        # Initialize form fields
         self.customer_name = QLineEdit()
         self.customer_phone = QLineEdit()
         self.customer_email = QLineEdit()
-        
-        # Vehicle Information
         self.vehicle_make = QLineEdit()
         self.vehicle_model = QLineEdit()
         self.vehicle_year = QSpinBox()
-        self.vehicle_year.setRange(1900, QDate.currentDate().year() + 1)
-        self.vehicle_year.setValue(QDate.currentDate().year())
+        self.vehicle_year.setRange(1900, QDate.currentDate().year())
         self.vehicle_vin = QLineEdit()
+        
+        # Initialize amount fields
+        self.subtotal = QDoubleSpinBox()
+        self.subtotal.setMaximum(999999.99)
+        self.subtotal.setDecimals(2)
+        self.subtotal.valueChanged.connect(self.calculate_totals)
         
         # Add fields to layout
         layout.addRow("Customer Name*:", self.customer_name)
@@ -43,46 +52,65 @@ class NewEstimateDialog(QDialog):
         layout.addRow("Email:", self.customer_email)
         layout.addRow("Vehicle Make*:", self.vehicle_make)
         layout.addRow("Vehicle Model*:", self.vehicle_model)
-        layout.addRow("Vehicle Year:", self.vehicle_year)
+        layout.addRow("Year:", self.vehicle_year)
         layout.addRow("VIN:", self.vehicle_vin)
+        layout.addRow("Subtotal*:", self.subtotal)
         
-        # Buttons
+        # Add buttons
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Ok | 
             QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self.validate_and_accept)
         buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
         
-        main_layout = QVBoxLayout()
-        main_layout.addLayout(layout)
-        main_layout.addWidget(buttons)
-        self.setLayout(main_layout)
+        self.setLayout(layout)
+
+    def calculate_totals(self):
+        subtotal = self.subtotal.value()
+        self.nhil = subtotal * 0.025
+        self.getfund = subtotal * 0.025
+        self.covid_levy = subtotal * 0.01
+        self.subtotal_with_levies = subtotal + self.nhil + self.getfund + self.covid_levy
+        self.vat = self.subtotal_with_levies * 0.15
+        self.total = self.subtotal_with_levies + self.vat
 
     def validate_and_accept(self):
-        if not self.customer_name.text():
-            QMessageBox.warning(
-                self, "Validation Error", "Customer name is required!"
-            )
-            return
-        if not self.vehicle_make.text() or not self.vehicle_model.text():
-            QMessageBox.warning(
-                self, "Validation Error", 
-                "Vehicle make and model are required!"
-            )
-            return
-        self.accept()
+        try:
+            if not all([
+                self.customer_name.text(),
+                self.vehicle_make.text(),
+                self.vehicle_model.text(),
+                self.subtotal.value() > 0
+            ]):
+                QMessageBox.warning(self, "Validation Error", 
+                    "Please fill all required fields and ensure subtotal is greater than 0")
+                return
 
-    def get_data(self):
-        return {
-            'customer_name': self.customer_name.text(),
-            'customer_phone': self.customer_phone.text(),
-            'customer_email': self.customer_email.text(),
-            'vehicle_make': self.vehicle_make.text(),
-            'vehicle_model': self.vehicle_model.text(),
-            'vehicle_year': self.vehicle_year.value(),
-            'vehicle_vin': self.vehicle_vin.text()
-        }
+            self.calculate_totals()
+            self.estimate_data = {
+                'customer_name': self.customer_name.text(),
+                'customer_phone': self.customer_phone.text(),
+                'customer_email': self.customer_email.text(),
+                'vehicle_make': self.vehicle_make.text(),
+                'vehicle_model': self.vehicle_model.text(),
+                'vehicle_year': self.vehicle_year.value(),
+                'vehicle_vin': self.vehicle_vin.text(),
+                'subtotal': self.subtotal.value(),
+                'nhil': self.nhil,
+                'getfund': self.getfund,
+                'covid_levy': self.covid_levy,
+                'vat': self.vat,
+                'total_amount': self.total,
+                'date': QDate.currentDate().toString("yyyy-MM-dd"),
+                'status': 'Pending'
+            }
+            self.accept()
+            
+        except Exception as e:
+            logging.error(f"Error in estimate validation: {str(e)}")
+            QMessageBox.critical(self, "Error", str(e))
 
 
 class ServiceEntryDialog(QDialog):

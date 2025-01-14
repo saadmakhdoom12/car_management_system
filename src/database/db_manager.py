@@ -2,8 +2,10 @@
 
 import os
 import sqlite3
+import logging
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 
 class DatabaseManager:
@@ -16,6 +18,7 @@ class DatabaseManager:
         )
         self.conn: Optional[sqlite3.Connection] = None
         self.connect()  # Establish connection when initialized
+        self.setup_database()
 
     def connect(self) -> bool:
         """Establish database connection"""
@@ -53,6 +56,38 @@ class DatabaseManager:
             if cursor:
                 cursor.close()
 
+    def setup_database(self):
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('DROP TABLE IF EXISTS estimates')
+                cursor.execute('''
+                CREATE TABLE estimates (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    customer_name TEXT NOT NULL,
+                    customer_phone TEXT,
+                    customer_email TEXT,
+                    vehicle_make TEXT NOT NULL,
+                    vehicle_model TEXT NOT NULL,
+                    vehicle_year INTEGER,
+                    vehicle_vin TEXT,
+                    subtotal REAL NOT NULL,
+                    nhil REAL,
+                    getfund REAL,
+                    covid_levy REAL,
+                    vat REAL,
+                    total_amount REAL NOT NULL,
+                    date TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'Pending',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                ''')
+                conn.commit()
+                logging.info("Estimates table created successfully")
+        except Exception as e:
+            logging.error(f"Database setup error: {str(e)}")
+            raise
+
     def initialize_tables(self):
         """Create tables if they don't exist"""
         with self.get_connection() as cursor:
@@ -60,14 +95,22 @@ class DatabaseManager:
                 # Create estimates table
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS estimates (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        customer_id INTEGER,
-                        vehicle_id INTEGER,
-                        date TEXT,
-                        total_amount REAL,
-                        status TEXT,
-                        FOREIGN KEY (customer_id) REFERENCES customers(id),
-                        FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
+                        estimate_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        customer_name TEXT NOT NULL,
+                        customer_phone TEXT,
+                        customer_email TEXT,
+                        vehicle_make TEXT NOT NULL,
+                        vehicle_model TEXT NOT NULL,
+                        vehicle_year INTEGER,
+                        vehicle_vin TEXT,
+                        date TEXT NOT NULL,
+                        subtotal REAL NOT NULL,
+                        nhil REAL NOT NULL,
+                        getfund REAL NOT NULL,
+                        covid_levy REAL NOT NULL,
+                        vat REAL NOT NULL,
+                        total_amount REAL NOT NULL,
+                        status TEXT NOT NULL
                     )
                 """)
 
@@ -115,45 +158,72 @@ class DatabaseManager:
                 ) from e
 
     def add_estimate(self, data: Dict) -> Optional[int]:
-        """Add new estimate with proper validation"""
-        required_fields = [
-            "customer_id",
-            "vehicle_id",
-            "date",
-            "total_amount",
-            "status",
-        ]
-
-        # Validate required fields
-        if not all(field in data for field in required_fields):
-            missing_fields = [
-                field for field in required_fields if field not in data
-            ]
-            print(f"Missing required fields: {missing_fields}")
-            return None
-
+        """Add new estimate with tax information"""
         try:
             with self.get_connection() as cursor:
                 query = """
-                    INSERT INTO estimates 
-                    (customer_id, vehicle_id, date, total_amount, status)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO estimates (
+                        customer_name, customer_phone, customer_email,
+                        vehicle_make, vehicle_model, vehicle_year, vehicle_vin,
+                        date, subtotal, nhil, getfund, covid_levy, vat,
+                        total_amount, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
-                cursor.execute(
-                    query,
-                    (
-                        int(data["customer_id"]),
-                        int(data["vehicle_id"]),
-                        data["date"],
-                        float(data["total_amount"]),
-                        data["status"],
-                    ),
-                )
-                self.conn.commit()
+                cursor.execute(query, (
+                    data['customer_name'],
+                    data['customer_phone'],
+                    data['customer_email'],
+                    data['vehicle_make'],
+                    data['vehicle_model'],
+                    data['vehicle_year'],
+                    data['vehicle_vin'],
+                    data['date'],
+                    data['subtotal'],
+                    data['nhil'],
+                    data['getfund'],
+                    data['covid_levy'],
+                    data['vat'],
+                    data['total_amount'],
+                    data['status']
+                ))
                 return cursor.lastrowid
-        except (sqlite3.Error, ValueError) as e:
-            print(f"Error adding estimate: {e}")
+        except Exception as e:
+            logging.error(f"Error adding estimate: {e}")
             return None
+
+    def create_estimate(self, estimate_data):
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                INSERT INTO estimates (
+                    customer_name, customer_phone, customer_email,
+                    vehicle_make, vehicle_model, vehicle_year,
+                    vehicle_vin, subtotal, nhil, getfund,
+                    covid_levy, vat, total_amount, date, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    estimate_data['customer_name'],
+                    estimate_data.get('customer_phone', ''),
+                    estimate_data.get('customer_email', ''),
+                    estimate_data['vehicle_make'],
+                    estimate_data['vehicle_model'],
+                    estimate_data.get('vehicle_year', None),
+                    estimate_data.get('vehicle_vin', ''),
+                    estimate_data['subtotal'],
+                    estimate_data.get('nhil', 0.0),
+                    estimate_data.get('getfund', 0.0),
+                    estimate_data.get('covid_levy', 0.0),
+                    estimate_data.get('vat', 0.0),
+                    estimate_data['total_amount'],
+                    estimate_data['date'],
+                    estimate_data.get('status', 'Pending')
+                ))
+                conn.commit()
+                return cursor.lastrowid
+        except Exception as e:
+            logging.error(f"Failed to create estimate: {str(e)}")
+            raise
 
     def add_service(self, service_data: Dict) -> int:
         """Add new service and return its ID"""
@@ -227,13 +297,20 @@ class DatabaseManager:
             except sqlite3.Error:
                 return False
 
-    def get_all_estimates(self) -> List[Dict]:
-        """Retrieve all estimates"""
-        with self.get_connection() as cursor:
-            query = "SELECT * FROM estimates ORDER BY created_date DESC"
-            cursor.execute(query)
-            columns = [col[0] for col in cursor.description]
-            return [dict(zip(columns, row)) for row in cursor.fetchall()]
+    def get_all_estimates(self):
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                SELECT id, customer_name, vehicle_make, vehicle_model, 
+                       date, total_amount, status 
+                FROM estimates 
+                ORDER BY date DESC
+                ''')
+                return cursor.fetchall()
+        except Exception as e:
+            logging.error(f"Error fetching estimates: {str(e)}")
+            raise
 
     def get_inventory_items(self) -> List[Dict]:
         """

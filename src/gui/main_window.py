@@ -1,28 +1,43 @@
+import logging
+
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
+    QHBoxLayout,  # Add this import
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QStatusBar,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
     QToolBar,
     QVBoxLayout,
     QWidget,
-    QHBoxLayout,  # Add this import
 )
 
 from database.db_manager import DatabaseManager
 
-from .dialogs import InventoryItemDialog, NewEstimateDialog, ReportDialog, ServiceEntryDialog, JobCardDialog  # Add to imports
+from .dialogs import (  # Add to imports
+    InventoryItemDialog,
+    JobCardDialog,
+    NewEstimateDialog,
+    ReportDialog,
+)
 
 
 class MainWindow(QMainWindow):
     def __init__(self, db_manager: DatabaseManager):
         super().__init__()
-        self.db_manager = db_manager
-        self.setup_ui()
+        try:
+            # Rename db_manager attribute
+            self.db_manager = db_manager
+            # Create status bar
+            self.status_bar = self.statusBar()
+            # Setup UI
+            self.setup_ui()
+            logging.info("MainWindow initialized successfully")
+        except Exception as e:
+            logging.error(f"Error initializing MainWindow: {str(e)}")
+            raise
 
     def setup_ui(self):
         self.setWindowTitle("Car Management System")
@@ -43,10 +58,6 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.create_reports_tab(), "Reports")
         tabs.addTab(self.create_jobcard_tab(), "JobCards")
         layout.addWidget(tabs)
-
-        # Create status bar
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
 
     def create_toolbar(self):
         toolbar = QToolBar()
@@ -73,13 +84,21 @@ class MainWindow(QMainWindow):
 
         # Estimates table
         self.estimates_table = QTableWidget()
-        self.estimates_table.setColumnCount(6)
-        self.estimates_table.setHorizontalHeaderLabels([
-            "Estimate ID", "Customer", "Vehicle", "Date", "Total", "Actions"
-        ])
+        self.estimates_table.setColumnCount(7)
+        self.estimates_table.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Customer",
+                "Vehicle",
+                "Date",
+                "Amount",
+                "Status",
+                "Actions",
+            ]
+        )
         layout.addWidget(self.estimates_table)
 
-        # Add button for new estimate
+        # New estimate button
         new_estimate_btn = QPushButton("New Estimate")
         new_estimate_btn.clicked.connect(self.show_new_estimate_dialog)
         layout.addWidget(new_estimate_btn)
@@ -94,9 +113,9 @@ class MainWindow(QMainWindow):
         # Inventory table
         self.inventory_table = QTableWidget()
         self.inventory_table.setColumnCount(5)
-        self.inventory_table.setHorizontalHeaderLabels([
-            "Item Code", "Description", "Quantity", "Unit Price", "Actions"
-        ])
+        self.inventory_table.setHorizontalHeaderLabels(
+            ["Item Code", "Description", "Quantity", "Unit Price", "Actions"]
+        )
         layout.addWidget(self.inventory_table)
 
         # Add button for new inventory item
@@ -114,12 +133,14 @@ class MainWindow(QMainWindow):
         # Report generation buttons
         estimates_report_btn = QPushButton("Generate Estimates Report")
         estimates_report_btn.clicked.connect(
-            lambda: self.show_report_dialog("Estimates"))
+            lambda: self.show_report_dialog("Estimates")
+        )
         layout.addWidget(estimates_report_btn)
 
         inventory_report_btn = QPushButton("Generate Inventory Report")
         inventory_report_btn.clicked.connect(
-            lambda: self.show_report_dialog("Inventory"))
+            lambda: self.show_report_dialog("Inventory")
+        )
         layout.addWidget(inventory_report_btn)
 
         return widget
@@ -127,39 +148,47 @@ class MainWindow(QMainWindow):
     def create_jobcard_tab(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        
+
         # JobCards table
         self.jobcards_table = QTableWidget()
         self.jobcards_table.setColumnCount(7)
-        self.jobcards_table.setHorizontalHeaderLabels([
-            "JobCard ID", "Estimate", "Status", 
-            "Technician", "Start Date", "Completion Date", "Actions"
-        ])
+        self.jobcards_table.setHorizontalHeaderLabels(
+            [
+                "JobCard ID",
+                "Estimate",
+                "Status",
+                "Technician",
+                "Start Date",
+                "Completion Date",
+                "Actions",
+            ]
+        )
         layout.addWidget(self.jobcards_table)
-        
+
         # Buttons
         button_layout = QHBoxLayout()
         new_jobcard_btn = QPushButton("New JobCard")
         new_jobcard_btn.clicked.connect(self.show_new_jobcard_dialog)
         button_layout.addWidget(new_jobcard_btn)
         layout.addLayout(button_layout)
-        
+
         return widget
 
     def show_new_estimate_dialog(self):
-        dialog = NewEstimateDialog(self)
-        if dialog.exec():
-            estimate_data = dialog.get_data()
-            try:
-                self.db_manager.add_estimate(estimate_data)
+        try:
+            dialog = NewEstimateDialog(self)
+            if dialog.exec():
+                self.db_manager.create_estimate(dialog.estimate_data)
                 self.refresh_estimates_table()
                 self.status_bar.showMessage(
                     "Estimate created successfully", 3000
                 )
-            except Exception as e:
-                QMessageBox.critical(
-                    self, "Error", f"Failed to create estimate: {str(e)}"
-                )
+                logging.info("New estimate created successfully")
+        except Exception as e:
+            error_msg = f"Failed to create estimate: {str(e)}"
+            logging.error(error_msg)
+            self.status_bar.showMessage(error_msg, 5000)
+            QMessageBox.critical(self, "Error", error_msg)
 
     def show_new_inventory_dialog(self):
         dialog = InventoryItemDialog(self)
@@ -192,9 +221,13 @@ class MainWindow(QMainWindow):
             try:
                 self.db_manager.add_jobcard(jobcard_data)
                 self.refresh_jobcards_table()
-                self.status_bar.showMessage("Job card created successfully", 3000)
+                self.status_bar.showMessage(
+                    "Job card created successfully", 3000
+                )
             except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to create job card: {str(e)}")
+                QMessageBox.critical(
+                    self, "Error", f"Failed to create job card: {str(e)}"
+                )
 
     def refresh_jobcards_table(self):
         """Refresh job cards table with latest data"""
@@ -203,44 +236,43 @@ class MainWindow(QMainWindow):
             jobcards = self.db_manager.get_jobcards()
             for row, jobcard in enumerate(jobcards):
                 self.jobcards_table.insertRow(row)
-                self.jobcards_table.setItem(row, 0, QTableWidgetItem(str(jobcard['jobcard_id'])))
-                self.jobcards_table.setItem(row, 1, QTableWidgetItem(str(jobcard['estimate_id'])))
-                self.jobcards_table.setItem(row, 2, QTableWidgetItem(jobcard['status']))
-                self.jobcards_table.setItem(row, 3, QTableWidgetItem(jobcard['technician']))
-                self.jobcards_table.setItem(row, 4, QTableWidgetItem(str(jobcard['start_date'])))
-                self.jobcards_table.setItem(row, 5, QTableWidgetItem(str(jobcard['completion_date'])))
+                self.jobcards_table.setItem(
+                    row, 0, QTableWidgetItem(str(jobcard["jobcard_id"]))
+                )
+                self.jobcards_table.setItem(
+                    row, 1, QTableWidgetItem(str(jobcard["estimate_id"]))
+                )
+                self.jobcards_table.setItem(
+                    row, 2, QTableWidgetItem(jobcard["status"])
+                )
+                self.jobcards_table.setItem(
+                    row, 3, QTableWidgetItem(jobcard["technician"])
+                )
+                self.jobcards_table.setItem(
+                    row, 4, QTableWidgetItem(str(jobcard["start_date"]))
+                )
+                self.jobcards_table.setItem(
+                    row, 5, QTableWidgetItem(str(jobcard["completion_date"]))
+                )
         except Exception as e:
-            self.status_bar.showMessage(f"Error loading job cards: {str(e)}", 5000)
+            self.status_bar.showMessage(
+                f"Error loading job cards: {str(e)}", 5000
+            )
 
     def refresh_estimates_table(self):
-        self.estimates_table.setRowCount(0)
         try:
             estimates = self.db_manager.get_all_estimates()
+            self.estimates_table.setRowCount(0)
             for row, estimate in enumerate(estimates):
                 self.estimates_table.insertRow(row)
-                self.estimates_table.setItem(
-                    row, 0, QTableWidgetItem(str(estimate['estimate_id']))
-                )
-                self.estimates_table.setItem(
-                    row, 1, QTableWidgetItem(estimate['customer_name'])
-                )
-                self.estimates_table.setItem(
-                    row, 2, QTableWidgetItem(
-                        f"{estimate['vehicle_year']} "
-                        f"{estimate['vehicle_make']} "
-                        f"{estimate['vehicle_model']}"
+                for col, value in enumerate(estimate):
+                    self.estimates_table.setItem(
+                        row, col, QTableWidgetItem(str(value))
                     )
-                )
-                self.estimates_table.setItem(
-                    row, 3, QTableWidgetItem(str(estimate['created_date']))
-                )
-                self.estimates_table.setItem(
-                    row, 4, QTableWidgetItem(
-                        f"${estimate['total_amount']:.2f}")
-                )
         except Exception as e:
-            error_message = f"Error loading estimates: {str(e)}"
-            self.status_bar.showMessage(error_message, 5000)
+            error_msg = f"Failed to refresh estimates: {str(e)}"
+            logging.error(error_msg)
+            self.status_bar.showMessage(error_msg, 5000)
 
     def refresh_inventory_table(self):
         self.inventory_table.setRowCount(0)
@@ -249,13 +281,13 @@ class MainWindow(QMainWindow):
             for row, item in enumerate(inventory_items):
                 self.inventory_table.insertRow(row)
                 self.inventory_table.setItem(
-                    row, 0, QTableWidgetItem(item['item_code'])
+                    row, 0, QTableWidgetItem(item["item_code"])
                 )
                 self.inventory_table.setItem(
-                    row, 1, QTableWidgetItem(item['description'])
+                    row, 1, QTableWidgetItem(item["description"])
                 )
                 self.inventory_table.setItem(
-                    row, 2, QTableWidgetItem(str(item['quantity']))
+                    row, 2, QTableWidgetItem(str(item["quantity"]))
                 )
                 self.inventory_table.setItem(
                     row, 3, QTableWidgetItem(f"${item['unit_price']:.2f}")
@@ -275,3 +307,21 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(
                 self, "Error", f"Failed to generate report: {str(e)}"
             )
+
+    def create_estimate(self):
+        try:
+            dialog = NewEstimateDialog(self)
+            if dialog.exec():
+                if not dialog.estimate_data:
+                    raise ValueError("No estimate data provided")
+                if 'subtotal' not in dialog.estimate_data:
+                    raise ValueError("Subtotal is required")
+                
+                self.db_manager.create_estimate(dialog.estimate_data)
+                self.refresh_estimates_table()
+                self.status_bar.showMessage("Estimate created successfully", 3000)
+        except Exception as e:
+            error_msg = f"Failed to create estimate: {str(e)}"
+            logging.error(error_msg)
+            self.status_bar.showMessage(error_msg, 5000)
+            QMessageBox.critical(self, "Error", error_msg)

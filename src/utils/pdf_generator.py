@@ -76,6 +76,21 @@ class PDFGenerator:
         self.pdf.set_font('Arial', 'B', 10)
         self.pdf.cell(150, 7, 'Total:', 1)
         self.pdf.cell(40, 7, f"${total:.2f}", 1)
+
+        # Add tax breakdown
+        self.pdf.ln(10)
+        self.pdf.set_font('Arial', 'B', 12)
+        self.pdf.cell(0, 10, 'Price Breakdown', 0, 1)
+        self.pdf.set_font('Arial', '', 10)
+        
+        self.pdf.cell(0, 6, f"Subtotal: ${estimate_data['subtotal']:.2f}", 0, 1)
+        self.pdf.cell(0, 6, f"NHIL (2.5%): ${estimate_data['nhil']:.2f}", 0, 1)
+        self.pdf.cell(0, 6, f"GETFUND (2.5%): ${estimate_data['getfund']:.2f}", 0, 1)
+        self.pdf.cell(0, 6, f"COVID Levy (1%): ${estimate_data['covid_levy']:.2f}", 0, 1)
+        self.pdf.cell(0, 6, f"Total with Levies: ${estimate_data['subtotal'] * 1.06:.2f}", 0, 1)
+        self.pdf.cell(0, 6, f"VAT (15%): ${estimate_data['vat']:.2f}", 0, 1)
+        self.pdf.set_font('Arial', 'B', 12)
+        self.pdf.cell(0, 8, f"Grand Total: ${estimate_data['total_amount']:.2f}", 0, 1)
         
         self.pdf.output(filename)
         return filename

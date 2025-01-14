@@ -1,0 +1,83 @@
+2025-01-14 22:01:00,689 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:01:00,689 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:01:00,785 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:01:00,835 - ERROR - Error initializing MainWindow: 'MainWindow' object has no attribute 'status_bar'
+2025-01-14 22:01:00,835 - CRITICAL - Fatal error: 'MainWindow' object has no attribute 'status_bar'
+Traceback (most recent call last):
+  File "/home/saad/Car_Management_System/src/gui/main_window.py", line 224, in refresh_estimates_table
+    estimates = self.db_manager.get_all_estimates()
+                ^^^^^^^^^^^^^^^
+AttributeError: 'MainWindow' object has no attribute 'db_manager'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/saad/Car_Management_System/src/main.py", line 96, in main
+    main_window = MainWindow(db_manager)
+                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/saad/Car_Management_System/src/gui/main_window.py", line 27, in __init__
+    self.setup_ui()
+  File "/home/saad/Car_Management_System/src/gui/main_window.py", line 47, in setup_ui
+    tabs.addTab(self.create_estimates_tab(), "Estimates")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/saad/Car_Management_System/src/gui/main_window.py", line 93, in create_estimates_tab
+    self.refresh_estimates_table()
+  File "/home/saad/Car_Management_System/src/gui/main_window.py", line 249, in refresh_estimates_table
+    self.status_bar.showMessage(error_message, 5000)
+    ^^^^^^^^^^^^^^^
+AttributeError: 'MainWindow' object has no attribute 'status_bar'. Did you mean: 'statusBar'?
+2025-01-14 22:06:23,498 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:06:23,498 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:06:23,594 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:06:23,652 - INFO - MainWindow initialized successfully
+2025-01-14 22:07:39,509 - INFO - Application shutting down
+2025-01-14 22:09:23,002 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:09:23,002 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:09:23,102 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:09:23,152 - INFO - MainWindow initialized successfully
+2025-01-14 22:09:37,064 - ERROR - Failed to create estimate: 'DatabaseManager' object has no attribute 'create_estimate'
+2025-01-14 22:09:46,511 - INFO - Application shutting down
+2025-01-14 22:17:36,070 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:17:36,070 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:17:36,170 - INFO - Database tables created successfully
+2025-01-14 22:17:36,171 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:17:36,218 - INFO - MainWindow initialized successfully
+2025-01-14 22:18:08,725 - ERROR - Failed to create estimate: table estimates has no column named subtotal
+2025-01-14 22:18:08,726 - ERROR - Failed to create estimate: table estimates has no column named subtotal
+2025-01-14 22:18:16,522 - INFO - Application shutting down
+2025-01-14 22:20:31,897 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:20:31,897 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:20:31,998 - INFO - Database tables created successfully
+2025-01-14 22:20:32,007 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:20:32,060 - ERROR - Failed to refresh estimates: no such column: created_date
+2025-01-14 22:20:36,953 - INFO - MainWindow initialized successfully
+2025-01-14 22:20:42,038 - INFO - Application shutting down
+2025-01-14 22:24:40,115 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:24:40,115 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:24:40,216 - INFO - Estimates table created successfully
+2025-01-14 22:24:40,227 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:24:40,286 - INFO - MainWindow initialized successfully
+2025-01-14 22:24:48,125 - INFO - Application shutting down
+2025-01-14 22:25:02,090 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:25:02,090 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:25:02,191 - INFO - Estimates table created successfully
+2025-01-14 22:25:02,191 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:25:02,243 - INFO - MainWindow initialized successfully
+2025-01-14 22:25:28,387 - ERROR - Failed to create estimate: 'subtotal'
+2025-01-14 22:25:28,388 - ERROR - Failed to create estimate: 'subtotal'
+2025-01-14 22:25:37,225 - INFO - Application shutting down
+2025-01-14 22:40:24,013 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:40:24,013 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:40:24,125 - INFO - Estimates table created successfully
+2025-01-14 22:40:24,125 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:40:24,181 - INFO - MainWindow initialized successfully
+2025-01-14 22:40:36,358 - ERROR - Failed to create estimate: 'subtotal'
+2025-01-14 22:40:36,359 - ERROR - Failed to create estimate: 'subtotal'
+2025-01-14 22:41:15,107 - INFO - Application shutting down
+2025-01-14 22:48:16,036 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:48:16,036 - INFO - Starting Car Management System v1.0.0
+2025-01-14 22:48:16,144 - INFO - Estimates table created successfully
+2025-01-14 22:48:16,144 - INFO - Database initialized at: data/car_management.db
+2025-01-14 22:48:16,202 - INFO - MainWindow initialized successfully
+2025-01-14 22:48:33,830 - INFO - New estimate created successfully
+2025-01-14 22:49:26,658 - INFO - New estimate created successfully

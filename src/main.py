@@ -19,17 +19,25 @@ CONFIG_FILE = "config.yml"
 
 def setup_environment():
     """Setup application environment"""
-    # Create necessary directories
+    # Create necessary directories first
     dirs = ["logs", "data", "reports"]
     for dir_name in dirs:
         Path(dir_name).mkdir(exist_ok=True)
+    
+    # Setup logging with proper path
+    log_file = Path("logs") / f"app_{datetime.now().strftime('%Y%m%d')}.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+    logging.info(f"Starting {APP_NAME} v{APP_VERSION}")
 
     # Load configuration
     config = load_config(CONFIG_FILE)
-
-    # Setup logging
-    log_file = f"logs/app_{datetime.now().strftime('%Y%m%d')}.log"
-    setup_logger(log_file)
 
     return config
 
